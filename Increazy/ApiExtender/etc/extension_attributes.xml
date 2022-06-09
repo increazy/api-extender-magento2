@@ -12,6 +12,10 @@
     </extension_attributes>
 
     <extension_attributes for="Magento\Catalog\Api\Data\ProductInterface">
+        <attribute code="rules" type="string"/>
+    </extension_attributes>
+
+    <extension_attributes for="Magento\Catalog\Api\Data\ProductInterface">
         <attribute code="price_range" type="string"/>
     </extension_attributes>
 

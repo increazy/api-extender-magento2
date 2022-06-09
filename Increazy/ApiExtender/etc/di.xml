@@ -5,6 +5,10 @@
     </type>
 
     <type name="Magento\Catalog\Api\ProductRepositoryInterface">
+        <plugin name="rule_field" type="Increazy\ApiExtender\Plugin\Rule"/>
+    </type>
+
+    <type name="Magento\Catalog\Api\ProductRepositoryInterface">
         <plugin name="price_field" type="Increazy\ApiExtender\Plugin\Product"/>
     </type>
 
