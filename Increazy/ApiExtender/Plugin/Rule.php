@@ -9,6 +9,7 @@ use Magento\CatalogRule\Model\ResourceModel\Rule as RuleModel;
 use Magento\Framework\Stdlib\DateTime\DateTime as DateTimeMagento;
 use Magento\Customer\Model\ResourceModel\Group\Collection as CustomerGroup;
 use Magento\Store\Model\StoreManagerInterface;
+use Magento\CatalogInventory\Model\Stock\Item;
 
 class Rule
 {
@@ -17,14 +18,17 @@ class Rule
     private $_customerGroup;
     private $_productRepository;
     private $_dateTime;
+    private $_stock;
 
     public function __construct(
+        Item $stock,
         RuleModel $rule,
         StoreManagerInterface $storeManager,
         CustomerGroup $customerGroup,
         DateTimeMagento $dateTime,
         ProductRepository $productRepository
     ) {
+        $this->_stock = $stock;
         $this->_rule = $rule;
         $this->_storeManager = $storeManager;
         $this->_customerGroup = $customerGroup;
@@ -45,12 +49,39 @@ class Rule
             foreach ($websites as $websiteID => $websiteConfig) {
                 $rules[$websiteID] = [];
                 foreach ($groups as $group) {
-                    $rules[$websiteID][$group['value']] = $this->_rule->getRulesFromProduct(
-                        $this->_dateTime->gmtDate(),
-                        $websiteID,
-                        $group['value'],
-                        $entity->getId()
-                    );
+                    if ($entity->getTypeId() === 'configurable') {
+                        $children = $entity->getTypeInstance()->getUsedProducts($entity);
+
+                        foreach ($children as $child){
+                            $rules[$websiteID][$group['value']][$child->getSku()] = $this->_rule->getRulesFromProduct(
+                                $this->_dateTime->gmtDate(),
+                                $websiteID,
+                                $group['value'],
+                                $child->getId()
+                            );
+
+                            $rules[$websiteID][$group['value']][$child->getSku()]['special_price'] = $child->getSpecialPrice();
+                            $rules[$websiteID][$group['value']][$child->getSku()]['price'] = $child->getPrice();
+                            $rules[$websiteID][$group['value']][$child->getSku()]['special_date'] = $child->getSpecialToDate();
+
+                            $stockItem = $this->_stock->load($child->getId(), 'product_id');
+                            $rules[$websiteID][$group['value']][$child->getSku()]['stock'] = $stockItem->getData();
+                        }
+                    } else {
+                        $rules[$websiteID][$group['value']][$entity->getSku()]= $this->_rule->getRulesFromProduct(
+                            $this->_dateTime->gmtDate(),
+                            $websiteID,
+                            $group['value'],
+                            $entity->getId()
+                        );
+
+                        $rules[$websiteID][$group['value']][$entity->getSku()]['special_price'] = $entity->getSpecialPrice();
+                        $rules[$websiteID][$group['value']][$entity->getSku()]['price'] = $entity->getPrice();
+                        $rules[$websiteID][$group['value']][$entity->getSku()]['special_date'] = $entity->getSpecialToDate();
+
+                        $stockItem = $this->_stock->load($entity->getId(), 'product_id');
+                        $rules[$websiteID][$group['value']][$entity->getSku()]['stock'] = $stockItem->getData();
+                    }
                 }
             }
 
